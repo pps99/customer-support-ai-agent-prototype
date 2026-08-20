@@ -1,0 +1,1 @@
+"""Footwear customer-support application."""

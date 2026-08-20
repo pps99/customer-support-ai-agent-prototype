@@ -1,0 +1,18 @@
+[
+    {
+        "order_id": "ORD-1001",
+        "customer_email": "alice@example.com",
+        "product": "SunnyRun Pro",
+        "status": "shipped",
+        "tracking_number": "TH123456",
+        "total": 129.99
+    },
+    {
+        "order_id": "ORD-1002",
+        "customer_email": "bob@example.com",
+        "product": "CloudWalk",
+        "status": "processing",
+        "tracking_number": null,
+        "total": 99.99
+    }
+]
