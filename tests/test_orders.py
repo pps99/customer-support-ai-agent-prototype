@@ -1,4 +1,21 @@
+import json
+
 from app.order_service import cancel_order, get_order
+
+
+def write_orders(path):
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "order_id": "ORD-TEST",
+                    "customer_email": "test@example.com",
+                    "status": "processing",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_correct_customer_can_get_order():
@@ -26,3 +43,36 @@ def test_order_lookup_checks_every_order():
 
     assert order is not None
     assert order["order_id"] == "ORD-1002"
+
+
+def test_successful_cancellation_is_persisted(tmp_path):
+    orders_file = tmp_path / "orders.json"
+    write_orders(orders_file)
+
+    result = cancel_order(
+        "ORD-TEST",
+        "test@example.com",
+        data_file=orders_file,
+    )
+
+    assert result["success"] is True
+    persisted = get_order(
+        "ORD-TEST",
+        "test@example.com",
+        data_file=orders_file,
+    )
+    assert persisted["status"] == "cancelled"
+
+
+def test_identity_mismatch_does_not_modify_order(tmp_path):
+    orders_file = tmp_path / "orders.json"
+    write_orders(orders_file)
+
+    result = cancel_order(
+        "ORD-TEST",
+        "attacker@example.com",
+        data_file=orders_file,
+    )
+
+    assert result == {"success": False, "reason": "IDENTITY_MISMATCH"}
+    assert json.loads(orders_file.read_text())[0]["status"] == "processing"

@@ -1,4 +1,4 @@
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import END, START, StateGraph
 
 from app.agent.state import AgentState
 from app.agent.nodes import (
@@ -44,61 +44,18 @@ def route_after_safety(state):
 
 
 builder = StateGraph(AgentState)
+builder.add_node("parse_request", parse_request_node)
+builder.add_node("check_required_fields", check_required_fields_node)
+builder.add_node("safety", safety_node)
+builder.add_node("escalate", escalation_node)
+builder.add_node("rag", rag_node)
+builder.add_node("generate_knowledge_response", generate_knowledge_response_node)
+builder.add_node("order_lookup", order_lookup_node)
+builder.add_node("cancel_order", cancel_order_node)
+builder.add_node("unknown", unknown_node)
 
-builder.add_node(
-    "parse_request",
-    parse_request_node
-)
-
-builder.add_node(
-    "check_required_fields",
-    check_required_fields_node
-)
-
-builder.add_node(
-    "safety",
-    safety_node
-)
-
-builder.add_node(
-    "escalate",
-    escalation_node
-)
-
-builder.add_node(
-    "rag",
-    rag_node
-)
-
-builder.add_node(
-    "generate_knowledge_response",
-    generate_knowledge_response_node
-)
-
-builder.add_node(
-    "order_lookup",
-    order_lookup_node
-)
-
-builder.add_node(
-    "cancel_order",
-    cancel_order_node
-)
-
-builder.add_node(
-    "unknown",
-    unknown_node
-)
-
-builder.add_edge(
-    START,
-    "parse_request"
-)
-
-builder.add_edge(
-    "parse_request",
-    "check_required_fields"
-)
+builder.add_edge(START, "parse_request")
+builder.add_edge("parse_request", "check_required_fields")
 
 builder.add_conditional_edges(
     "check_required_fields",
@@ -121,34 +78,11 @@ builder.add_conditional_edges(
     },
 )
 
-builder.add_edge(
-    "rag",
-    "generate_knowledge_response"
-)
-
-builder.add_edge(
-    "generate_knowledge_response",
-    END
-)
-
-builder.add_edge(
-    "order_lookup",
-    END
-)
-
-builder.add_edge(
-    "cancel_order",
-    END
-)
-
-builder.add_edge(
-    "unknown",
-    END
-)
-
-builder.add_edge(
-    "escalate",
-    END
-)
+builder.add_edge("rag", "generate_knowledge_response")
+builder.add_edge("generate_knowledge_response", END)
+builder.add_edge("order_lookup", END)
+builder.add_edge("cancel_order", END)
+builder.add_edge("unknown", END)
+builder.add_edge("escalate", END)
 
 support_graph = builder.compile()

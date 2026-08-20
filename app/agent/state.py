@@ -1,23 +1,24 @@
-from typing import TypedDict, Optional, Any
+from typing import Any, TypedDict
 
 
 class AgentState(TypedDict, total=False):
     message: str
+    request_id: str
 
-    intent: Optional[str]
-    confidence: Optional[float]
+    intent: str | None
+    confidence: float | None
 
-    order_id: Optional[str]
-    customer_email: Optional[str]
+    order_id: str | None
+    customer_email: str | None
 
-    risk_level: Optional[str]
-    allowed: Optional[bool]
+    risk_level: str | None
+    allowed: bool | None
 
     retrieved_context: list[dict[str, Any]]
     sources: list[str]
 
-    action: Optional[str]
+    action: str | None
     escalated: bool
 
-    response: Optional[str]
-    error: Optional[str]
+    response: str | None
+    error: str | None

@@ -1,10 +1,14 @@
-from typing import Literal, Optional
-from pydantic import BaseModel, Field
 import json
+import logging
 import os
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 from app.llm.client import get_openai_client
 
+
+logger = logging.getLogger(__name__)
 
 IntentType = Literal[
     "PRODUCT_INFORMATION",
@@ -14,14 +18,18 @@ IntentType = Literal[
     "RETURN_REQUEST",
     "REFUND_REQUEST",
     "DAMAGED_ITEM",
-    "UNKNOWN"
+    "WARRANTY_CLAIM",
+    "DUPLICATE_CHARGE",
+    "COMPENSATION_REQUEST",
+    "CHANGE_DELIVERY_ADDRESS",
+    "UNKNOWN",
 ]
 
 
 class ParsedIntent(BaseModel):
     intent: IntentType
-    order_id: Optional[str] = None
-    customer_email: Optional[str] = None
+    order_id: str | None = None
+    customer_email: str | None = None
     confidence: float = Field(ge=0.0, le=1.0)
 
 
@@ -45,6 +53,10 @@ def parse_intent(message: str) -> ParsedIntent:
                 - RETURN_REQUEST
                 - REFUND_REQUEST
                 - DAMAGED_ITEM
+                - WARRANTY_CLAIM
+                - DUPLICATE_CHARGE
+                - COMPENSATION_REQUEST
+                - CHANGE_DELIVERY_ADDRESS
                 - UNKNOWN
 
                 Rules:
@@ -89,6 +101,7 @@ def safe_parse_intent(message: str) -> ParsedIntent:
         return parse_intent(message)
 
     except Exception:
+        logger.exception("intent_parsing_failed")
         return ParsedIntent(
             intent="UNKNOWN",
             order_id=None,

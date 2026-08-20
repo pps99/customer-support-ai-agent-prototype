@@ -1,13 +1,20 @@
+import logging
+
 import gradio as gr
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
 from app.chat_service import process_support_message
-from app.models import ChatRequest, ChatResponse
+from app.models import ChatRequest, ChatResponse, OrderLookupRequest
 from app.order_service import get_order
+from app.rag.retriever import collection
 from app.ui import create_ui
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 app = FastAPI(title="Footwear Customer Support Agent")
 
 
@@ -18,13 +25,18 @@ def home() -> RedirectResponse:
 
 
 @app.get("/health")
-def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+def health_check() -> dict[str, str | int]:
+    policy_documents = collection.count()
+    return {
+        "status": "ok" if policy_documents else "degraded",
+        "policy_documents": policy_documents,
+    }
 
 
-@app.get("/orders/{order_id}")
-def order_lookup(order_id: str, email: str):
-    order = get_order(order_id, email)
+@app.post("/orders/lookup")
+def order_lookup(request: OrderLookupRequest):
+    """Look up an order without placing customer email in the request URL."""
+    order = get_order(request.order_id, request.customer_email)
 
     if not order:
         raise HTTPException(

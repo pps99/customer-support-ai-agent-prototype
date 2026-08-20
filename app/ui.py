@@ -25,6 +25,10 @@ def respond(
     details = f"Action: {result.action or 'UNKNOWN'}"
     if result.escalated:
         details += " · Escalated to support"
+    if result.sources:
+        details += f" · Sources: {', '.join(result.sources)}"
+    if result.request_id:
+        details += f" · Request: {result.request_id[:8]}"
 
     return f"{result.response}\n\n_{details}_"
 

@@ -19,6 +19,7 @@ env/
 # Generated application data
 data/chroma/
 data/.cache/
+data/runtime/
 
 # Coverage and build output
 .coverage

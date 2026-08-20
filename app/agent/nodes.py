@@ -1,9 +1,15 @@
-from app.llm.intent_parser import safe_parse_intent
-from app.safety import check_action
+import logging
+
+from app.config import MIN_INTENT_CONFIDENCE
 from app.escalation_service import create_escalation
-from app.rag.retriever import MAX_RELEVANT_DISTANCE, search_policy
-from app.order_service import get_order, cancel_order
 from app.llm.knowledge_answer import generate_answer_from_context
+from app.llm.intent_parser import safe_parse_intent
+from app.order_service import get_order, cancel_order
+from app.rag.retriever import MAX_RELEVANT_DISTANCE, search_policy
+from app.safety import check_action
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_request_node(state):
@@ -11,6 +17,9 @@ def parse_request_node(state):
 
     state["intent"] = parsed.intent
     state["confidence"] = parsed.confidence
+
+    if parsed.confidence < MIN_INTENT_CONFIDENCE:
+        state["intent"] = "UNKNOWN"
 
     if parsed.order_id:
         state["order_id"] = parsed.order_id
@@ -53,7 +62,7 @@ def escalation_node(state):
     ticket = create_escalation(
         reason=state["intent"],
         message=state["message"],
-        order_id=state.get("order_id")
+        order_id=state.get("order_id"),
     )
 
     state["escalated"] = True
@@ -70,6 +79,10 @@ def rag_node(state):
     try:
         documents = search_policy(state["message"])
     except Exception as exc:
+        logger.exception(
+            "policy_retrieval_failed request_id=%s",
+            state.get("request_id"),
+        )
         state["retrieved_context"] = []
         state["sources"] = []
         state["action"] = "KNOWLEDGE_LOOKUP_FAILED"
@@ -100,11 +113,18 @@ def generate_knowledge_response_node(state):
     )
 
     if not documents:
-        state["response"] = (
-            "I could not find enough verified information "
-            "to answer that question."
-        )
-        state["action"] = "KNOWLEDGE_NOT_FOUND"
+        if state.get("action") == "KNOWLEDGE_LOOKUP_FAILED":
+            state["response"] = (
+                "The policy service is temporarily unavailable. "
+                "Please try again or contact support."
+            )
+            state["action"] = "KNOWLEDGE_SERVICE_UNAVAILABLE"
+        else:
+            state["response"] = (
+                "I could not find enough verified information "
+                "to answer that question."
+            )
+            state["action"] = "KNOWLEDGE_NOT_FOUND"
         return state
 
     context = "\n\n".join(
@@ -122,6 +142,10 @@ def generate_knowledge_response_node(state):
         state["action"] = "KNOWLEDGE_RESPONSE"
 
     except Exception as exc:
+        logger.exception(
+            "knowledge_generation_failed request_id=%s",
+            state.get("request_id"),
+        )
         state["response"] = (
             "I found relevant policy information, "
             "but I was unable to generate a reliable answer. "
