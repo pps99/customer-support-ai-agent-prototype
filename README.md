@@ -12,8 +12,10 @@ app/
 ├── llm/               # OpenAI client and prompt helpers
 ├── rag/               # Policy ingestion and semantic retrieval
 ├── config.py          # Shared paths and settings
+├── chat_service.py    # Shared agent entry point for API and UI
 ├── main.py            # FastAPI endpoints
 ├── models.py          # API request and response models
+├── ui.py              # Gradio chat interface
 ├── order_service.py   # Order lookup and cancellation rules
 ├── escalation_service.py
 └── safety.py
@@ -51,7 +53,10 @@ python -c "from app.rag.ingest import ingest; ingest()"
 uvicorn app.main:app --reload
 ```
 
-Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
+Open the browser chat interface at `http://127.0.0.1:8000/ui`.
+
+Interactive API documentation remains available at
+`http://127.0.0.1:8000/docs`.
 
 ## Test
 

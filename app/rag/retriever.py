@@ -11,6 +11,10 @@ collection = client.get_or_create_collection(
     name="support_policies"
 )
 
+# Chroma's default L2 distance is lower for better matches. Relevant policy
+# chunks commonly fall near 1.0 with the default MiniLM embedding model.
+MAX_RELEVANT_DISTANCE = 1.5
+
 
 def search_policy(query: str, limit: int = 3):
     result = collection.query(

@@ -1,7 +1,7 @@
 from app.llm.intent_parser import safe_parse_intent
 from app.safety import check_action
 from app.escalation_service import create_escalation
-from app.rag.retriever import search_policy
+from app.rag.retriever import MAX_RELEVANT_DISTANCE, search_policy
 from app.order_service import get_order, cancel_order
 from app.llm.knowledge_answer import generate_answer_from_context
 
@@ -78,7 +78,7 @@ def rag_node(state):
 
     useful_docs = [
         doc for doc in documents
-        if doc["distance"] < 0.8
+        if doc["distance"] <= MAX_RELEVANT_DISTANCE
     ]
 
     state["retrieved_context"] = useful_docs
