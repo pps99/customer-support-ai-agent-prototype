@@ -28,6 +28,35 @@ The language model classifies and writes grounded responses. It does not decide
 whether a sensitive action is allowed; deterministic application code enforces
 those boundaries.
 
+### Agent node workflow
+
+```mermaid
+flowchart TD
+    startNode([START]) --> parseRequest[parse_request]
+    parseRequest --> requiredFields[check_required_fields]
+
+    requiredFields -->|Missing order ID or email| clarificationExit([END: clarification])
+    requiredFields -->|Required fields ready| safetyCheck[safety]
+
+    safetyCheck -->|Unsafe action| escalation[escalate]
+    safetyCheck -->|Policy, product, or return| policyRetrieval[rag]
+    safetyCheck -->|Order status| orderLookup[order_lookup]
+    safetyCheck -->|Order cancellation| cancelOrder[cancel_order]
+    safetyCheck -->|Unknown intent| unknownRequest[unknown]
+
+    policyRetrieval --> knowledgeResponse[generate_knowledge_response]
+
+    escalation --> terminalNode([END])
+    knowledgeResponse --> terminalNode
+    orderLookup --> terminalNode
+    cancelOrder --> terminalNode
+    unknownRequest --> terminalNode
+```
+
+Every branch in this diagram corresponds to a node or conditional route in
+`app/agent/graph.py`. Unsafe requests terminate through escalation, while
+missing identity details terminate with a clarification rather than an action.
+
 ## Project structure
 
 ```text
@@ -92,7 +121,7 @@ Interactive API documentation remains available at
 python -m pytest
 ```
 
-The current suite contains 23 deterministic tests. See [TESTING.md](TESTING.md)
+The current suite contains 25 deterministic tests. See [TESTING.md](TESTING.md)
 for successful cases, discovered failures, and remaining evaluation gaps.
 
 ## Assumptions
@@ -162,7 +191,7 @@ the system's truthfulness boundary. See [AI_DISCLOSURE.md](AI_DISCLOSURE.md).
 
 ### 5. What evidence makes you trust the system today, what remains unproven, and what would you improve first with one additional day?
 
-Twenty-three deterministic tests currently cover identity checks, persistent
+Twenty-five deterministic tests currently cover identity checks, persistent
 cancellation, durable escalation, low-confidence blocking, retrieval failures,
 prompt-injection resistance at the action boundary, UI null inputs, and safe
 top-level failures. The code also distinguishes knowledge absence from service

@@ -7,7 +7,7 @@ source .venv/bin/activate
 python -m pytest -q
 ```
 
-Current verified result: **23 passed**. ChromaDB emits one upstream Python 3.14
+Current verified result: **25 passed**. ChromaDB emits one upstream Python 3.14
 deprecation warning; it does not fail the suite.
 
 ## Covered behavior

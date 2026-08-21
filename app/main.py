@@ -8,7 +8,7 @@ from app.chat_service import process_support_message
 from app.models import ChatRequest, ChatResponse, OrderLookupRequest
 from app.order_service import get_order
 from app.rag.retriever import collection
-from app.ui import create_ui
+from app.ui import UI_CSS, UI_THEME, create_ui
 
 
 logging.basicConfig(
@@ -57,4 +57,11 @@ def chat(request: ChatRequest) -> ChatResponse:
     )
 
 
-app = gr.mount_gradio_app(app, create_ui(), path="/ui")
+app = gr.mount_gradio_app(
+    app,
+    create_ui(),
+    path="/ui",
+    theme=UI_THEME,
+    css=UI_CSS,
+    footer_links=[],
+)

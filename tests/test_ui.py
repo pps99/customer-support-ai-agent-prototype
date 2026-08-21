@@ -26,4 +26,39 @@ def test_respond_accepts_empty_optional_fields(monkeypatch):
     )
 
     assert "You can return eligible shoes." in response
-    assert "Action: KNOWLEDGE_RESPONSE" in response
+    assert "Outcome:** Grounded policy answer" in response
+
+
+def test_submit_message_preserves_a_readable_conversation(monkeypatch):
+    monkeypatch.setattr(
+        ui,
+        "respond",
+        lambda *args: "A grounded answer.\n\n---\n**Outcome:** Policy answer",
+    )
+
+    cleared_message, history = ui.submit_message(
+        "What is the return policy?",
+        None,
+        None,
+        None,
+    )
+
+    assert cleared_message == ""
+    assert history[0]["role"] == "assistant"
+    assert history[-2] == {
+        "role": "user",
+        "content": "What is the return policy?",
+    }
+    assert history[-1]["role"] == "assistant"
+
+
+def test_empty_message_does_not_call_agent(monkeypatch):
+    def unexpected_call(*args):
+        raise AssertionError("Agent should not run for an empty message")
+
+    monkeypatch.setattr(ui, "respond", unexpected_call)
+
+    cleared_message, history = ui.submit_message("   ", None, None, None)
+
+    assert cleared_message == ""
+    assert history == [ui.WELCOME_MESSAGE]

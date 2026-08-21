@@ -68,8 +68,9 @@ def escalation_node(state):
     state["escalated"] = True
     state["action"] = "ESCALATE"
     state["response"] = (
-        f"This request requires manual review. "
-        f"Support ticket {ticket['ticket_id']} has been created."
+        "This request is outside the prototype's automatic-action boundary. "
+        f"Review record {ticket['ticket_id']} was saved locally for demonstration. "
+        "No real support team has been notified."
     )
 
     return state
