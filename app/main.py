@@ -54,6 +54,7 @@ def chat(request: ChatRequest) -> ChatResponse:
         message=request.message,
         order_id=request.order_id,
         customer_email=request.customer_email,
+        history=[item.model_dump() for item in request.history],
     )
 
 

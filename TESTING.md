@@ -7,8 +7,8 @@ source .venv/bin/activate
 python -m pytest -q
 ```
 
-Current verified result: **25 passed**. ChromaDB emits one upstream Python 3.14
-deprecation warning; it does not fail the suite.
+Current verified result: **34 passed**. Starlette and ChromaDB emit upstream
+Python 3.14 deprecation warnings; they do not fail the suite.
 
 ## Covered behavior
 
@@ -30,6 +30,15 @@ deprecation warning; it does not fail the suite.
 - Health reports whether policy documents are indexed.
 - Order lookup keeps customer email out of URL/query logs.
 - Failed order verification returns a neutral response.
+- Browser and API chat history reaches the intent-classification workflow.
+- An email-only follow-up can reuse a previously supplied order ID and intent.
+- Conversation history is bounded and filtered to supported text messages.
+- Requested order-ID and email replies bypass model classification, so the
+  order flow remains deterministic during a transient model API failure.
+- Clearly worded order-status and cancellation requests also bypass model
+  classification before collecting their required verification fields.
+- Gradio's browser-normalized text blocks are flattened before the workflow, so
+  multi-turn order details survive a real UI round trip.
 
 Tests use temporary files and mocks at external boundaries. They never mutate the
 committed sample orders or require paid model calls.

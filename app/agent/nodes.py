@@ -1,4 +1,5 @@
 import logging
+import re
 
 from app.config import MIN_INTENT_CONFIDENCE
 from app.escalation_service import create_escalation
@@ -11,9 +12,118 @@ from app.safety import check_action
 
 logger = logging.getLogger(__name__)
 
+ORDER_ID_PATTERN = re.compile(r"\bORD-\d+\b", re.IGNORECASE)
+EMAIL_PATTERN = re.compile(
+    r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
+    re.IGNORECASE,
+)
+NON_ORDER_ACTION_PATTERN = re.compile(
+    r"\b(refund|return|warranty|damaged|duplicate|compensation|address)\b",
+    re.IGNORECASE,
+)
+
+
+def _user_messages(state) -> list[str]:
+    messages = [
+        item["content"]
+        for item in state.get("history", [])
+        if item.get("role") == "user" and isinstance(item.get("content"), str)
+    ]
+    messages.append(state["message"])
+    return messages
+
+
+def _pending_order_intent(state) -> str | None:
+    """Recover an order intent when the UI is waiting for a requested field."""
+    assistant_messages = [
+        item["content"].lower()
+        for item in state.get("history", [])
+        if item.get("role") == "assistant"
+        and isinstance(item.get("content"), str)
+    ]
+    if not assistant_messages:
+        return None
+
+    latest_assistant_message = assistant_messages[-1]
+    current_message = state["message"]
+    is_order_id_reply = (
+        "provide your order id" in latest_assistant_message
+        and ORDER_ID_PATTERN.search(current_message)
+    )
+    is_email_reply = (
+        "provide the email address associated with the order"
+        in latest_assistant_message
+        and EMAIL_PATTERN.search(current_message)
+    )
+    if not (is_order_id_reply or is_email_reply):
+        return None
+
+    conversation = " ".join(_user_messages(state)).lower()
+    if re.search(r"\bcancel(?:lation|led|ing)?\b", conversation):
+        return "ORDER_CANCEL"
+    if re.search(r"\b(status|track|tracking|where|shipped|delivery)\b", conversation):
+        return "ORDER_STATUS"
+    return None
+
+
+def _clear_order_intent(message: str) -> str | None:
+    """Recognize explicit order actions without depending on model availability."""
+    if NON_ORDER_ACTION_PATTERN.search(message):
+        return None
+
+    has_order_reference = bool(
+        re.search(r"\border\b", message, re.IGNORECASE)
+        or ORDER_ID_PATTERN.search(message)
+    )
+    if not has_order_reference:
+        return None
+
+    if re.search(r"\bcancel(?:lation|led|ing)?\b", message, re.IGNORECASE):
+        return "ORDER_CANCEL"
+    if re.search(
+        r"\b(status|track|tracking|where|shipped|delivery)\b",
+        message,
+        re.IGNORECASE,
+    ):
+        return "ORDER_STATUS"
+    return None
+
+
+def _apply_user_supplied_order_fields(state) -> None:
+    """Carry explicit order fields forward from user-authored messages only."""
+    for message in _user_messages(state):
+        order_match = ORDER_ID_PATTERN.search(message)
+        email_match = EMAIL_PATTERN.search(message)
+        if order_match:
+            state["order_id"] = order_match.group(0).upper()
+        if email_match:
+            state["customer_email"] = email_match.group(0)
+
 
 def parse_request_node(state):
-    parsed = safe_parse_intent(state["message"])
+    pending_intent = _pending_order_intent(state)
+    if pending_intent:
+        state["intent"] = pending_intent
+        state["confidence"] = 1.0
+        _apply_user_supplied_order_fields(state)
+        return state
+
+    clear_order_intent = _clear_order_intent(state["message"])
+    if clear_order_intent:
+        state["intent"] = clear_order_intent
+        state["confidence"] = 1.0
+        order_match = ORDER_ID_PATTERN.search(state["message"])
+        email_match = EMAIL_PATTERN.search(state["message"])
+        if order_match:
+            state["order_id"] = order_match.group(0).upper()
+        if email_match:
+            state["customer_email"] = email_match.group(0)
+        return state
+
+    parsed = safe_parse_intent(
+        state["message"],
+        history=state.get("history"),
+    )
 
     state["intent"] = parsed.intent
     state["confidence"] = parsed.confidence

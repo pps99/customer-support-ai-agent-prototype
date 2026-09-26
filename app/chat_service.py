@@ -3,6 +3,7 @@
 import logging
 import time
 import uuid
+from typing import Any
 
 from app.agent.graph import support_graph
 from app.models import ChatResponse
@@ -15,6 +16,7 @@ def process_support_message(
     message: str,
     order_id: str | None = None,
     customer_email: str | None = None,
+    history: list[dict[str, Any]] | None = None,
 ) -> ChatResponse:
     """Run a customer message through the support workflow."""
     request_id = str(uuid.uuid4())
@@ -24,6 +26,7 @@ def process_support_message(
         result = support_graph.invoke(
             {
                 "message": message,
+                "history": history or [],
                 "request_id": request_id,
                 "order_id": order_id or None,
                 "customer_email": customer_email or None,

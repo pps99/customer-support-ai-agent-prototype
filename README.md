@@ -24,9 +24,11 @@ FastAPI / Gradio
    └── uncertain ─────► clarification
 ```
 
-The language model classifies and writes grounded responses. It does not decide
-whether a sensitive action is allowed; deterministic application code enforces
-those boundaries.
+Deterministic application code recognizes clear order-status/cancellation flows,
+collects requested verification fields across turns, and enforces safety
+boundaries. The language model classifies less explicit requests and writes
+grounded policy responses; it does not decide whether a sensitive action is
+allowed.
 
 ### Agent node workflow
 
@@ -107,13 +109,27 @@ python -c "from app.rag.ingest import ingest; ingest()"
 ## Run
 
 ```bash
-uvicorn app.main:app --reload
+# uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 Open the browser chat interface at `http://127.0.0.1:8000/ui`.
 
 Interactive API documentation remains available at
 `http://127.0.0.1:8000/docs`.
+
+For multi-turn API conversations, send the prior `user` and `assistant`
+messages in the optional `history` array:
+
+```json
+{
+  "message": "alice@example.com",
+  "history": [
+    {"role": "user", "content": "Check status for ORD-1001"},
+    {"role": "assistant", "content": "Please provide your email."}
+  ]
+}
+```
 
 ## Test
 
@@ -138,8 +154,9 @@ for successful cases, discovered failures, and remaining evaluation gaps.
 ## Known limitations
 
 - JSON files and a process-local lock are not safe for multiple server workers.
-- Conversations are stateless; prior chat messages are displayed but not sent
-  to the agent.
+- Browser follow-ups include a bounded recent transcript so the agent can carry
+  forward user-supplied order details. API clients can provide the same context
+  through the optional `history` field on `POST /chat`.
 - There is no user authentication, rate limiting, tracing backend, or encrypted
   PII store.
 - LLM classification and generation remain nondeterministic and depend on the

@@ -14,5 +14,13 @@
         "status": "processing",
         "tracking_number": null,
         "total": 99.99
+    },
+    {
+        "order_id": "ORD-1003",
+        "customer_email": "kitty@example.com",
+        "product": "CloudWalk",
+        "status": "processing",
+        "tracking_number": null,
+        "total": 199.99
     }
 ]

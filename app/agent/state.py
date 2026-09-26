@@ -3,6 +3,7 @@ from typing import Any, TypedDict
 
 class AgentState(TypedDict, total=False):
     message: str
+    history: list[dict[str, Any]]
     request_id: str
 
     intent: str | None
